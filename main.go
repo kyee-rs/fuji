@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"log"
+	"math"
 	"net/url"
 	"os"
 	"os/signal"
@@ -30,12 +31,15 @@ type Information struct {
 	Author       string `json:"author"`
 	Language     string `json:"language"`
 	SubscribedTo string `json:"subscribed_to"`
+	Note         string `json:"note"`
 }
 
 type BundleResponse struct {
 	Bundle
 	Annotations Information `json:"annotations"`
 }
+
+const LAMPORTS_PER_SOL = 1_000_000_000
 
 func main() {
 	app := fiber.New()
@@ -58,6 +62,12 @@ func main() {
 			return c.Status(500).JSON(map[string]string{"error": err.Error(), "description": "Could not parse the cached data. Probably the program did not have enough time to write the data to the cache."})
 		}
 
+		data.LandedTips25thPercentile = math.Round(data.LandedTips25thPercentile * LAMPORTS_PER_SOL)
+		data.LandedTips50thPercentile = math.Round(data.LandedTips50thPercentile * LAMPORTS_PER_SOL)
+		data.LandedTips75thPercentile = math.Round(data.LandedTips75thPercentile * LAMPORTS_PER_SOL)
+		data.LandedTips95thPercentile = math.Round(data.LandedTips95thPercentile * LAMPORTS_PER_SOL)
+		data.LandedTips99thPercentile = math.Round(data.LandedTips99thPercentile * LAMPORTS_PER_SOL)
+
 		return c.JSON(BundleResponse{
 			data,
 			Information{
@@ -65,6 +75,7 @@ func main() {
 				"Dutch (@devkyee on TG)",
 				"Go",
 				"ws://bundles-api-rest.jito.wtf/api/v1/bundles/tip_stream",
+				"The values are specified in lamports (a fractional unit of the Solana cryptocurrency). If the value is below 10,000 lamports, it means that all the bundles landed above the corresponding percentile.",
 			},
 		})
 	})
